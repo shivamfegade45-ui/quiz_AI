@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Take Quiz</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            padding: 25px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .header {
+            background: linear-gradient(
+                135deg,
+                #4f46e5,
+                #9333ea
+            );
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            margin-top: 0;
+        }
+
+        .question-card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 18px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .number {
+            color: #7c3aed;
+            font-weight: bold;
+        }
+
+        .question {
+            font-size: 19px;
+            font-weight: bold;
+            margin: 12px 0 20px;
+        }
+
+        .option {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .option:hover {
+            background: #f5f3ff;
+            border-color: #7c3aed;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .left {
+            padding: 12px;
+            background: #f5f3ff;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 17px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(
+                90deg,
+                #4f46e5,
+                #9333ea
+            );
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        @media(max-width: 650px) {
+
+            .pair {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 12px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+
+        <h1>📝 Your Quiz</h1>
+
+        {% if topic %}
+            <p>
+                Topic: {{ topic }}
+            </p>
+        {% endif %}
+
+        <p>
+            Difficulty: {{ difficulty }}
+        </p>
+
+        <p>
+            Questions: {{ questions|length }}
+        </p>
+
+    </div>
+
+
+    <form
+        method="POST"
+        action="{{ url_for('submit') }}"
+    >
+
+        {% for q in questions %}
+
+        <div class="question-card">
+
+            <div class="number">
+                Question {{ loop.index }}
+            </div>
+
+            <div class="question">
+                {{ q.question }}
+            </div>
+
+
+            <!-- MCQ -->
+
+            {% if q.type == "mcq" %}
+
+                {% for option in q.options %}
+
+                <label class="option">
+
+                    <input
+                        type="radio"
+                        name="answer_{{ loop.parent.index0 }}"
+                        value="{{ option }}"
+                        required
+                    >
+
+                    {{ option }}
+
+                </label>
+
+                {% endfor %}
+
+            {% endif %}
+
+
+            <!-- TRUE FALSE -->
+
+            {% if q.type == "true_false" %}
+
+                <label class="option">
+
+                    <input
+                        type="radio"
+                        name="answer_{{ loop.index0 }}"
+                        value="True"
+                        required
+                    >
+
+                    True
+
+                </label>
+
+                <label class="option">
+
+                    <input
+                        type="radio"
+                        name="answer_{{ loop.index0 }}"
+                        value="False"
+                    >
+
+                    False
+
+                </label>
+
+            {% endif %}
+
+
+            <!-- FILL BLANK -->
+
+            {% if q.type == "fill_blank" %}
+
+                <input
+                    type="text"
+                    name="answer_{{ loop.index0 }}"
+                    placeholder="Enter your answer"
+                    required
+                >
+
+            {% endif %}
+
+
+            <!-- SHORT ANSWER -->
+
+            {% if q.type == "short_answer" %}
+
+                <textarea
+                    name="answer_{{ loop.index0 }}"
+                    placeholder="Write your answer..."
+                    required
+                ></textarea>
+
+            {% endif %}
+
+
+            <!-- MATCH PAIRS -->
+
+            {% if q.type == "match_pairs" %}
+
+                {% for pair in q.pairs %}
+
+                    <div class="pair">
+
+                        <div class="left">
+                            {{ pair.left }}
+                        </div>
+
+                        <select
+                            name="pair_{{ loop.parent.index0 }}_{{ loop.index0 }}"
+                            onchange="updatePairs({{ loop.parent.index0 }})"
+                        >
+
+                            <option value="">
+                                Select match
+                            </option>
+
+                            {% for p in q.pairs %}
+
+                            <option value="{{ p.right }}">
+                                {{ p.right }}
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                {% endfor %}
+
+                <input
+                    type="hidden"
+                    name="answer_{{ loop.index0 }}"
+                    id="match_answer_{{ loop.index0 }}"
+                >
+
+            {% endif %}
+
+        </div>
+
+        {% endfor %}
+
+
+        <button
+            type="submit"
+            class="submit-btn"
+        >
+            ✅ Submit Quiz
+        </button>
+
+    </form>
+
+</div>
+
+
+<script>
+
+function updatePairs(questionIndex) {
+
+    const selects =
+        document.querySelectorAll(
+            '[name^="pair_' + questionIndex + '_"]'
+        );
+
+    let result = [];
+
+    selects.forEach(function(select) {
+
+        const left =
+            select.parentElement
+                .querySelector(".left")
+                .innerText
+                .trim();
+
+        const right =
+            select.value.trim();
+
+        if (right) {
+            result.push(
+                left + " - " + right
+            );
+        }
+
+    });
+
+    const hidden =
+        document.getElementById(
+            "match_answer_" + questionIndex
+        );
+
+    hidden.value =
+        result.join("; ");
+
+}
+
+</script>
+
+</body>
+
+</html>

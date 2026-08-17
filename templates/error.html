@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Quiz Error</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            padding: 40px;
+        }
+
+        .box {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #dc2626;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 18px;
+            border-radius: 12px;
+            word-break: break-word;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 13px 20px;
+            background: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+    <h1>⚠️ Quiz Generation Error</h1>
+
+    <div class="error">
+        {{ error }}
+    </div>
+
+    <a href="{{ url_for('home') }}">
+        ← Back to Quiz Generator
+    </a>
+
+</div>
+
+</body>
+
+</html>

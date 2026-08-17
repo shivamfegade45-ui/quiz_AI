@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Quiz Generator</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background:
+                linear-gradient(
+                    135deg,
+                    #4f46e5,
+                    #7c3aed,
+                    #9333ea
+                );
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+        }
+
+        .hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 25px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        .upload-box {
+            border: 2px dashed #7c3aed;
+            border-radius: 18px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            background: #faf7ff;
+        }
+
+        .upload-box:hover {
+            background: #f3e8ff;
+        }
+
+        .upload-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 12px;
+            font-weight: bold;
+            color: #7c3aed;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #7c3aed;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .question-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .type-option {
+            border: 1px solid #ddd;
+            padding: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .type-option:hover {
+            background: #faf7ff;
+            border-color: #7c3aed;
+        }
+
+        .type-option input {
+            margin-right: 8px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            border: none;
+            padding: 17px;
+            border-radius: 14px;
+            background: linear-gradient(
+                90deg,
+                #4f46e5,
+                #9333ea
+            );
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .note {
+            background: #f5f3ff;
+            padding: 14px;
+            border-radius: 12px;
+            color: #4c1d95;
+            margin-top: 15px;
+        }
+
+        @media(max-width: 700px) {
+
+            body {
+                padding: 15px;
+            }
+
+            .hero h1 {
+                font-size: 34px;
+            }
+
+            .grid,
+            .question-types {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 22px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="hero">
+
+        <h1>🧠 AI Quiz Generator</h1>
+
+        <p>
+            Upload your study material or enter a topic
+            and let AI create your quiz.
+        </p>
+
+    </div>
+
+
+    <div class="card">
+
+        <form
+            action="{{ url_for('generate') }}"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+            <!-- PDF -->
+
+            <div class="section">
+
+                <div class="section-title">
+                    📄 Upload Study Material
+                </div>
+
+                <label
+                    class="upload-box"
+                    for="file"
+                >
+
+                    <div class="upload-icon">
+                        📚
+                    </div>
+
+                    <h3>
+                        Upload Your PDF
+                    </h3>
+
+                    <p>
+                        Questions will be generated
+                        from your uploaded material.
+                    </p>
+
+                    <div class="file-name" id="fileName">
+                        No file selected
+                    </div>
+
+                </label>
+
+                <input
+                    id="file"
+                    name="file"
+                    type="file"
+                    accept=".pdf"
+                    onchange="showFileName(this)"
+                >
+
+            </div>
+
+
+            <!-- Topic -->
+
+            <div class="section">
+
+                <div class="section-title">
+                    ✏️ Topic
+                </div>
+
+                <input
+                    type="text"
+                    name="topic"
+                    placeholder="Example: Python Programming"
+                >
+
+            </div>
+
+
+            <!-- Difficulty + Questions -->
+
+            <div class="grid">
+
+                <div class="section">
+
+                    <div class="section-title">
+                        🎯 Difficulty
+                    </div>
+
+                    <select name="difficulty">
+
+                        <option value="easy">
+                            Easy
+                        </option>
+
+                        <option value="medium" selected>
+                            Medium
+                        </option>
+
+                        <option value="hard">
+                            Hard
+                        </option>
+
+                        <option value="super hard">
+                            Super Hard
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="section">
+
+                    <div class="section-title">
+                        🔢 Number of Questions
+                    </div>
+
+                    <input
+                        type="number"
+                        name="question_count"
+                        min="1"
+                        max="{{ max_questions }}"
+                        value="10"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Question Types -->
+
+            <div class="section">
+
+                <div class="section-title">
+                    📝 Question Types
+                </div>
+
+                <div class="question-types">
+
+                    <label class="type-option">
+                        <input
+                            type="checkbox"
+                            name="question_types"
+                            value="mcq"
+                            checked
+                        >
+                        MCQ
+                    </label>
+
+
+                    <label class="type-option">
+                        <input
+                            type="checkbox"
+                            name="question_types"
+                            value="fill_blank"
+                            checked
+                        >
+                        Fill in the blanks
+                    </label>
+
+
+                    <label class="type-option">
+                        <input
+                            type="checkbox"
+                            name="question_types"
+                            value="true_false"
+                            checked
+                        >
+                        True / False
+                    </label>
+
+
+                    <label class="type-option">
+                        <input
+                            type="checkbox"
+                            name="question_types"
+                            value="short_answer"
+                            checked
+                        >
+                        Short Answer
+                    </label>
+
+
+                    <label class="type-option">
+                        <input
+                            type="checkbox"
+                            name="question_types"
+                            value="match_pairs"
+                            checked
+                        >
+                        Match the Pairs
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <div class="note">
+                💡 You can upload a PDF, enter a topic, or use both.
+                Maximum {{ max_questions }} questions are supported.
+            </div>
+
+
+            <br>
+
+
+            <button
+                class="generate-btn"
+                type="submit"
+            >
+                🚀 Generate Quiz
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function showFileName(input) {
+
+    const fileName =
+        document.getElementById("fileName");
+
+    if (input.files.length > 0) {
+
+        fileName.textContent =
+            "Selected: " +
+            input.files[0].name;
+
+    } else {
+
+        fileName.textContent =
+            "No file selected";
+
+    }
+}
+
+</script>
+
+</body>
+
+</html>

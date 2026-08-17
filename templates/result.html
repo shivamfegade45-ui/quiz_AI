@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Quiz Result | AI Quiz Generator</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at top left, #dbeafe, transparent 35%),
+                radial-gradient(circle at bottom right, #ede9fe, transparent 35%),
+                #f8fafc;
+            min-height: 100vh;
+            color: #172033;
+            padding: 30px 15px;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        /* HEADER */
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 65px;
+            height: 65px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            font-size: 30px;
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.25);
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 34px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        /* RESULT CARD */
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 28px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+            margin-bottom: 30px;
+        }
+
+        .score-section {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .score-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+
+            background:
+                conic-gradient(
+                    #4f46e5 var(--percentage),
+                    #e5e7eb var(--percentage)
+                );
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            position: relative;
+        }
+
+        .score-circle::before {
+            content: "";
+            position: absolute;
+            width: 145px;
+            height: 145px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .score-text {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 40px;
+            font-weight: 800;
+            color: #4f46e5;
+        }
+
+        .score-percent {
+            font-size: 16px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .score-section h2 {
+            font-size: 27px;
+            margin-bottom: 8px;
+        }
+
+        .score-message {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        /* STATS */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            border-radius: 18px;
+            padding: 22px 15px;
+            text-align: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-icon {
+            font-size: 25px;
+            margin-bottom: 8px;
+        }
+
+        .stat-number {
+            font-size: 27px;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .correct .stat-number {
+            color: #16a34a;
+        }
+
+        .wrong .stat-number {
+            color: #dc2626;
+        }
+
+        .unanswered .stat-number {
+            color: #f59e0b;
+        }
+
+        .total .stat-number {
+            color: #4f46e5;
+        }
+
+        /* BUTTONS */
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            text-decoration: none;
+            padding: 14px 25px;
+            border-radius: 13px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.25s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            transform: translateY(-2px);
+        }
+
+        /* REVIEW */
+
+        .review-title {
+            font-size: 25px;
+            margin-bottom: 20px;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        }
+
+        .question-header {
+            padding: 17px 20px;
+            background: #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .question-number {
+            font-weight: 800;
+            color: #334155;
+        }
+
+        .status {
+            padding: 7px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .status.correct {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status.wrong {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status.unanswered {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .question-body {
+            padding: 22px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .answer-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .answer {
+            padding: 16px;
+            border-radius: 13px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .answer-title {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 7px;
+        }
+
+        .answer-value {
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .your-answer {
+            background: #f8fafc;
+        }
+
+        .correct-answer {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .explanation {
+            margin-top: 15px;
+            padding: 16px;
+            border-radius: 13px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .explanation-title {
+            font-weight: 800;
+            color: #1d4ed8;
+            margin-bottom: 6px;
+        }
+
+        .explanation-text {
+            color: #334155;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* EMPTY */
+
+        .no-review {
+            padding: 30px;
+            text-align: center;
+            background: #f8fafc;
+            border-radius: 15px;
+            color: #64748b;
+        }
+
+        /* FOOTER */
+
+        .footer {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 25px;
+            padding-bottom: 20px;
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 750px) {
+
+            body {
+                padding: 20px 10px;
+            }
+
+            .result-card {
+                padding: 22px 15px;
+                border-radius: 20px;
+            }
+
+            .header h1 {
+                font-size: 27px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .answer-box {
+                grid-template-columns: 1fr;
+            }
+
+            .question-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .score-circle {
+                width: 155px;
+                height: 155px;
+            }
+
+            .score-circle::before {
+                width: 125px;
+                height: 125px;
+            }
+
+            .score-number {
+                font-size: 34px;
+            }
+        }
+
+        @media (max-width: 400px) {
+
+            .stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .stat {
+                padding: 15px 8px;
+            }
+
+            .stat-number {
+                font-size: 23px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <div class="logo">
+            🤖
+        </div>
+
+        <h1>Quiz Completed!</h1>
+
+        <p>Here is your AI-generated quiz result</p>
+
+    </div>
+
+
+    <!-- RESULT -->
+
+    <div class="result-card">
+
+        <div class="score-section">
+
+            {% set total = total|default(
