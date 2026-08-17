@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>AI Quiz</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2ff;
+            text-align: center;
+            padding-top: 80px;
+        }
+
+        .box {
+            background: white;
+            width: 450px;
+            margin: auto;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0px 5px 20px #aaa;
+        }
+
+        h1 {
+            font-size: 35px;
+        }
+
+        input {
+            width: 90%;
+            padding: 14px;
+            font-size: 16px;
+            border: 1px solid #aaa;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 14px 35px;
+            font-size: 17px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .topics {
+            margin-top: 25px;
+            color: #555;
+        }
+
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="box">
+
+        <h1>🤖 AI Quiz</h1>
+
+        <h2>Welcome to AI Quiz</h2>
+
+        <p>Test your programming knowledge!</p>
+
+        <form action="/quiz" method="POST">
+
+            <input
+                type="text"
+                name="topic"
+                placeholder="Enter Topic"
+                required
+            >
+
+            <br>
+
+            <button type="submit">
+                Start Quiz 🚀
+            </button>
+
+        </form>
+
+
+        <div class="topics">
+
+            <h3>Available Topics</h3>
+
+            <p>🐍 Python</p>
+            <p>⚙️ C++</p>
+            <p>☕ Java</p>
+            <p>🌐 JavaScript</p>
+            <p>📝 HTML</p>
+
+        </div>
+
+
+        {% if error %}
+
+            <div class="error">
+                {{ error }}
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</body>
+
+</html>

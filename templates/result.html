@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Quiz Result</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2ff;
+            text-align: center;
+            padding-top: 80px;
+        }
+
+        .result {
+            width: 500px;
+            margin: auto;
+            background: white;
+            padding: 45px;
+            border-radius: 20px;
+            box-shadow: 0px 5px 20px #aaa;
+        }
+
+        h1 {
+            color: #2563eb;
+        }
+
+        .score {
+            font-size: 35px;
+            font-weight: bold;
+        }
+
+        .percentage {
+            font-size: 25px;
+        }
+
+        .feedback {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 13px 30px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="result">
+
+    <h1>🎉 Quiz Completed!</h1>
+
+    <h2>
+        {{ topic|upper }} QUIZ
+    </h2>
+
+
+    <div class="score">
+
+        {{ score }} / {{ total }}
+
+    </div>
+
+
+    <div class="percentage">
+
+        Percentage: {{ percentage }}%
+
+    </div>
+
+
+    <div class="feedback">
+
+        {{ feedback }}
+
+    </div>
+
+
+    <a href="/">
+
+        🔄 Try Another Quiz
+
+    </a>
+
+</div>
+
+</body>
+
+</html>
