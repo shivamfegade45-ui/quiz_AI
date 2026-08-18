@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>AI Quiz Generator</title>
+    <title>QuizAI — Smart AI Quiz Generator</title>
 
     <style>
 
@@ -15,74 +15,442 @@
             padding: 0;
         }
 
-        body {
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-            background:
-                linear-gradient(
-                    135deg,
-                    #4f46e5,
-                    #7c3aed,
-                    #9333ea
-                );
-            padding: 30px;
+        html {
+            scroll-behavior: smooth;
         }
 
-        .container {
-            max-width: 950px;
-            margin: auto;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+
+            background:
+                radial-gradient(circle at 10% 10%, rgba(124,58,237,.35), transparent 30%),
+                radial-gradient(circle at 90% 20%, rgba(6,182,212,.25), transparent 30%),
+                radial-gradient(circle at 50% 100%, rgba(236,72,153,.20), transparent 35%),
+                #070817;
+        }
+
+        .background {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: -10;
+            pointer-events: none;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: .35;
+            animation: floatBlob 12s ease-in-out infinite alternate;
+        }
+
+        .blob1 {
+            width: 330px;
+            height: 330px;
+            background: #7c3aed;
+            left: -100px;
+            top: -100px;
+        }
+
+        .blob2 {
+            width: 300px;
+            height: 300px;
+            background: #06b6d4;
+            right: -100px;
+            top: 180px;
+            animation-delay: 2s;
+        }
+
+        .blob3 {
+            width: 280px;
+            height: 280px;
+            background: #ec4899;
+            bottom: -120px;
+            left: 40%;
+            animation-delay: 4s;
+        }
+
+        @keyframes floatBlob {
+            0% {
+                transform: translate(0,0) scale(1);
+            }
+
+            50% {
+                transform: translate(45px,30px) scale(1.1);
+            }
+
+            100% {
+                transform: translate(80px,60px) scale(1.2);
+            }
+        }
+
+        .symbol {
+            position: fixed;
+            z-index: -1;
+            font-size: 28px;
+            opacity: .15;
+            pointer-events: none;
+            animation: floatingSymbol 7s ease-in-out infinite;
+        }
+
+        .symbol1 {
+            top: 15%;
+            left: 5%;
+        }
+
+        .symbol2 {
+            top: 30%;
+            right: 7%;
+            animation-delay: 1s;
+        }
+
+        .symbol3 {
+            top: 65%;
+            left: 8%;
+            animation-delay: 2s;
+        }
+
+        .symbol4 {
+            bottom: 15%;
+            right: 8%;
+            animation-delay: 3s;
+        }
+
+        @keyframes floatingSymbol {
+            0%,100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-25px) rotate(12deg);
+            }
+        }
+
+        nav {
+            width: 92%;
+            max-width: 1150px;
+            margin: 20px auto;
+            padding: 14px 18px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            border-radius: 20px;
+
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.13);
+
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+
+            box-shadow: 0 15px 50px rgba(0,0,0,.25);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 45px;
+            height: 45px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+            font-size: 23px;
+
+            background: linear-gradient(135deg,#7c3aed,#06b6d4);
+
+            box-shadow: 0 0 25px rgba(124,58,237,.5);
+
+            animation: logoPulse 3s infinite;
+        }
+
+        @keyframes logoPulse {
+            0%,100% {
+                box-shadow: 0 0 20px rgba(124,58,237,.4);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(6,182,212,.7);
+            }
+        }
+
+        .brand-name {
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+        .brand-name span {
+            background: linear-gradient(90deg,#a78bfa,#22d3ee);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .ai-badge {
+            padding: 7px 13px;
+            border-radius: 30px;
+
+            font-size: 12px;
+            font-weight: bold;
+
+            color: #c4b5fd;
+
+            border: 1px solid rgba(167,139,250,.3);
+            background: rgba(139,92,246,.12);
         }
 
         .hero {
+            width: 92%;
+            max-width: 1000px;
+
+            margin: 65px auto 40px;
+
             text-align: center;
-            color: white;
-            margin-bottom: 30px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 9px 16px;
+
+            border-radius: 30px;
+
+            background: rgba(139,92,246,.12);
+            border: 1px solid rgba(139,92,246,.3);
+
+            color: #c4b5fd;
+
+            font-size: 13px;
+            font-weight: bold;
+
+            animation: fadeUp .8s ease;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            background: #34d399;
+
+            box-shadow: 0 0 12px #34d399;
         }
 
         .hero h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
+            margin-top: 22px;
+
+            font-size: clamp(42px,7vw,76px);
+
+            line-height: 1;
+            font-weight: 900;
+
+            letter-spacing: -3px;
+
+            animation: fadeUp 1s ease;
+        }
+
+        .gradient-text {
+            background:
+                linear-gradient(
+                    90deg,
+                    #a78bfa,
+                    #22d3ee,
+                    #f472b6,
+                    #a78bfa
+                );
+
+            background-size: 250% auto;
+
+            -webkit-background-clip: text;
+            color: transparent;
+
+            animation: gradientMove 5s linear infinite;
+        }
+
+        @keyframes gradientMove {
+            to {
+                background-position: 250% center;
+            }
         }
 
         .hero p {
-            font-size: 18px;
-            opacity: 0.9;
+            max-width: 680px;
+
+            margin: 25px auto 0;
+
+            color: #a9aec5;
+
+            font-size: 17px;
+            line-height: 1.7;
+
+            animation: fadeUp 1.2s ease;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(25px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            width: 92%;
+            max-width: 920px;
+
+            margin: 35px auto 80px;
         }
 
         .card {
-            background: white;
-            border-radius: 25px;
-            padding: 35px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            position: relative;
+
+            padding: 32px;
+
+            border-radius: 30px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,.10),
+                    rgba(255,255,255,.04)
+                );
+
+            border: 1px solid rgba(255,255,255,.14);
+
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+
+            box-shadow: 0 30px 80px rgba(0,0,0,.45);
+
+            overflow: hidden;
+
+            animation: cardAppear 1s ease;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(35px) scale(.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .section {
-            margin-bottom: 28px;
+            margin-bottom: 25px;
         }
 
         .section-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #222;
+            font-size: 14px;
+            font-weight: 800;
+
+            color: #e5e7eb;
+
+            margin-bottom: 10px;
         }
 
         .upload-box {
-            border: 2px dashed #7c3aed;
-            border-radius: 18px;
-            padding: 30px;
+            min-height: 190px;
+
+            padding: 25px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
             text-align: center;
+
+            border: 2px dashed rgba(167,139,250,.45);
+
+            border-radius: 22px;
+
+            background: rgba(139,92,246,.06);
+
             cursor: pointer;
-            background: #faf7ff;
+
+            transition: .3s ease;
         }
 
         .upload-box:hover {
-            background: #f3e8ff;
+            transform: translateY(-4px);
+
+            border-color: #a78bfa;
+
+            background: rgba(139,92,246,.12);
+
+            box-shadow: 0 15px 40px rgba(139,92,246,.15);
         }
 
         .upload-icon {
-            font-size: 50px;
-            margin-bottom: 10px;
+            width: 65px;
+            height: 65px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 20px;
+
+            font-size: 30px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #06b6d4
+                );
+
+            box-shadow: 0 12px 30px rgba(124,58,237,.3);
+
+            margin-bottom: 14px;
+
+            animation: uploadFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes uploadFloat {
+            0%,100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .upload-box h3 {
+            margin-bottom: 7px;
+        }
+
+        .upload-box p {
+            color: #8e94ac;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .browse {
+            color: #a78bfa;
+            font-weight: bold;
         }
 
         input[type="file"] {
@@ -91,99 +459,323 @@
 
         .file-name {
             margin-top: 12px;
+
+            color: #67e8f9;
+
+            font-size: 13px;
             font-weight: bold;
-            color: #7c3aed;
+
+            word-break: break-word;
         }
 
         input[type="text"],
         input[type="number"],
         select {
             width: 100%;
-            padding: 14px;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            font-size: 16px;
+
+            padding: 15px;
+
+            border-radius: 14px;
+
+            border: 1px solid rgba(255,255,255,.12);
+
+            background: rgba(0,0,0,.20);
+
+            color: white;
+
+            font-size: 15px;
+
             outline: none;
+
+            transition: .25s;
+        }
+
+        input::placeholder {
+            color: #737990;
         }
 
         input:focus,
         select:focus {
-            border-color: #7c3aed;
+            border-color: #8b5cf6;
+
+            box-shadow:
+                0 0 0 4px
+                rgba(139,92,246,.10);
+        }
+
+        select option {
+            background: #111326;
+            color: white;
         }
 
         .grid {
             display: grid;
+
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+
+            gap: 18px;
         }
 
         .question-types {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+
+            grid-template-columns:
+                repeat(5,1fr);
+
+            gap: 10px;
         }
 
         .type-option {
-            border: 1px solid #ddd;
-            padding: 14px;
-            border-radius: 12px;
+            padding: 15px 10px;
+
+            border-radius: 15px;
+
             cursor: pointer;
+
+            text-align: center;
+
+            border:
+                1px solid
+                rgba(255,255,255,.09);
+
+            background:
+                rgba(255,255,255,.04);
+
+            color: #a1a7bc;
+
+            transition: .25s;
         }
 
         .type-option:hover {
-            background: #faf7ff;
-            border-color: #7c3aed;
+            transform: translateY(-3px);
+
+            border-color: #8b5cf6;
+
+            background:
+                rgba(139,92,246,.10);
         }
 
         .type-option input {
-            margin-right: 8px;
-        }
-
-        .generate-btn {
-            width: 100%;
-            border: none;
-            padding: 17px;
-            border-radius: 14px;
-            background: linear-gradient(
-                90deg,
-                #4f46e5,
-                #9333ea
-            );
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .generate-btn:hover {
-            transform: translateY(-2px);
+            accent-color: #8b5cf6;
+            margin-right: 5px;
         }
 
         .note {
-            background: #f5f3ff;
             padding: 14px;
-            border-radius: 12px;
-            color: #4c1d95;
-            margin-top: 15px;
+
+            border-radius: 14px;
+
+            color: #c4b5fd;
+
+            background:
+                rgba(139,92,246,.08);
+
+            border:
+                1px solid
+                rgba(139,92,246,.12);
+
+            font-size: 13px;
+
+            line-height: 1.5;
         }
 
-        @media(max-width: 700px) {
+        .generate-btn {
+            position: relative;
+
+            width: 100%;
+
+            border: none;
+
+            padding: 17px;
+
+            border-radius: 16px;
+
+            color: white;
+
+            font-size: 17px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #7c3aed,
+                    #06b6d4,
+                    #7c3aed
+                );
+
+            background-size: 200% auto;
+
+            box-shadow:
+                0 12px 35px
+                rgba(124,58,237,.35);
+
+            transition: .3s;
+
+            animation:
+                buttonGradient
+                4s linear infinite;
+        }
+
+        @keyframes buttonGradient {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+
+            box-shadow:
+                0 18px 45px
+                rgba(124,58,237,.45);
+        }
+
+        .generate-btn:active {
+            transform: scale(.98);
+        }
+
+        footer {
+            text-align: center;
+
+            color: #666d86;
+
+            font-size: 12px;
+
+            padding: 0 20px 30px;
+        }
+
+        footer span {
+            color: #a78bfa;
+        }
+
+        @media(max-width:700px) {
 
             body {
-                padding: 15px;
+                padding: 0;
+            }
+
+            nav {
+                width: calc(100% - 24px);
+
+                margin: 12px auto;
+
+                padding: 12px 14px;
+
+                border-radius: 17px;
+            }
+
+            .brand-name {
+                font-size: 18px;
+            }
+
+            .logo {
+                width: 40px;
+                height: 40px;
+
+                font-size: 20px;
+            }
+
+            .ai-badge {
+                display: none;
+            }
+
+            .hero {
+                width: calc(100% - 28px);
+
+                margin: 45px auto 30px;
             }
 
             .hero h1 {
-                font-size: 34px;
+                font-size:
+                    clamp(
+                        38px,
+                        12vw,
+                        52px
+                    );
+
+                letter-spacing: -2px;
             }
 
-            .grid,
+            .hero p {
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            .container {
+                width: calc(100% - 24px);
+
+                margin: 25px auto 55px;
+            }
+
+            .card {
+                padding: 20px;
+
+                border-radius: 23px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .question-types {
+                grid-template-columns: 1fr 1fr;
+                gap: 9px;
+            }
+
+            .type-option {
+                padding: 13px 7px;
+                font-size: 12px;
+            }
+
+            .upload-box {
+                min-height: 175px;
+                padding: 20px 12px;
+            }
+
+            .upload-icon {
+                width: 58px;
+                height: 58px;
+                font-size: 26px;
+            }
+
+            .upload-box h3 {
+                font-size: 16px;
+            }
+
+            .upload-box p {
+                font-size: 12px;
+            }
+
+            .generate-btn {
+                font-size: 16px;
+                padding: 16px;
+            }
+
+            .symbol {
+                font-size: 22px;
+            }
+        }
+
+        @media(max-width:380px) {
+
+            .hero h1 {
+                font-size: 35px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
             .question-types {
                 grid-template-columns: 1fr;
             }
 
-            .card {
-                padding: 22px;
+            .type-option {
+                text-align: left;
             }
         }
 
@@ -193,254 +785,401 @@
 
 <body>
 
-<div class="container">
+    <div class="background">
 
-    <div class="hero">
-
-        <h1>🧠 AI Quiz Generator</h1>
-
-        <p>
-            Upload your study material or enter a topic
-            and let AI create your quiz.
-        </p>
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+        <div class="blob blob3"></div>
 
     </div>
 
 
-    <div class="card">
+    <div class="symbol symbol1">✦</div>
+    <div class="symbol symbol2">🧠</div>
+    <div class="symbol symbol3">⚡</div>
+    <div class="symbol symbol4">🎯</div>
 
-        <form
-            action="{{ url_for('generate') }}"
-            method="POST"
-            enctype="multipart/form-data"
-        >
 
-            <!-- PDF -->
+    <nav>
 
-            <div class="section">
+        <div class="brand">
 
-                <div class="section-title">
-                    📄 Upload Study Material
-                </div>
-
-                <label
-                    class="upload-box"
-                    for="file"
-                >
-
-                    <div class="upload-icon">
-                        📚
-                    </div>
-
-                    <h3>
-                        Upload Your PDF
-                    </h3>
-
-                    <p>
-                        Questions will be generated
-                        from your uploaded material.
-                    </p>
-
-                    <div class="file-name" id="fileName">
-                        No file selected
-                    </div>
-
-                </label>
-
-                <input
-                    id="file"
-                    name="file"
-                    type="file"
-                    accept=".pdf"
-                    onchange="showFileName(this)"
-                >
-
+            <div class="logo">
+                🧠
             </div>
 
-
-            <!-- Topic -->
-
-            <div class="section">
-
-                <div class="section-title">
-                    ✏️ Topic
-                </div>
-
-                <input
-                    type="text"
-                    name="topic"
-                    placeholder="Example: Python Programming"
-                >
-
+            <div class="brand-name">
+                Quiz<span>AI</span>
             </div>
 
+        </div>
 
-            <!-- Difficulty + Questions -->
+        <div class="ai-badge">
+            ✨ AI POWERED
+        </div>
 
-            <div class="grid">
+    </nav>
+
+
+    <section class="hero">
+
+        <div class="hero-badge">
+
+            <span class="live-dot"></span>
+
+            Smart Quiz Generation
+
+        </div>
+
+
+        <h1>
+
+            Turn Your Study Material
+
+            <br>
+
+            Into
+
+            <span class="gradient-text">
+                Smart Quizzes
+            </span>
+
+        </h1>
+
+
+        <p>
+
+            Upload your study material or enter a topic
+            and let QuizAI create engaging quizzes in seconds.
+
+            <br>
+
+            Learn smarter. Practice better. 🚀
+
+        </p>
+
+    </section>
+
+
+    <main class="container">
+
+        <div class="card">
+
+            <form
+                action="{{ url_for('generate') }}"
+                method="POST"
+                enctype="multipart/form-data"
+            >
 
                 <div class="section">
 
                     <div class="section-title">
-                        🎯 Difficulty
+                        📄 Upload Study Material
                     </div>
 
-                    <select name="difficulty">
+                    <label
+                        class="upload-box"
+                        for="file"
+                    >
 
-                        <option value="easy">
-                            Easy
-                        </option>
+                        <div class="upload-icon">
+                            📚
+                        </div>
 
-                        <option value="medium" selected>
-                            Medium
-                        </option>
+                        <h3>
+                            Upload Your PDF
+                        </h3>
 
-                        <option value="hard">
-                            Hard
-                        </option>
+                        <p>
+                            Questions will be generated
+                            from your uploaded material.
+                        </p>
 
-                        <option value="super hard">
-                            Super Hard
-                        </option>
+                        <p>
+                            <span class="browse">
+                                Click to browse
+                            </span>
+                        </p>
 
-                    </select>
+                        <div
+                            class="file-name"
+                            id="fileName"
+                        >
+                            No file selected
+                        </div>
 
-                </div>
-
-
-                <div class="section">
-
-                    <div class="section-title">
-                        🔢 Number of Questions
-                    </div>
+                    </label>
 
                     <input
-                        type="number"
-                        name="question_count"
-                        min="1"
-                        max="{{ max_questions }}"
-                        value="10"
+                        id="file"
+                        name="file"
+                        type="file"
+                        accept=".pdf"
+                        onchange="showFileName(this)"
                     >
 
                 </div>
 
-            </div>
 
+                <div class="section">
 
-            <!-- Question Types -->
+                    <div class="section-title">
+                        ✏️ Topic
+                    </div>
 
-            <div class="section">
-
-                <div class="section-title">
-                    📝 Question Types
-                </div>
-
-                <div class="question-types">
-
-                    <label class="type-option">
-                        <input
-                            type="checkbox"
-                            name="question_types"
-                            value="mcq"
-                            checked
-                        >
-                        MCQ
-                    </label>
-
-
-                    <label class="type-option">
-                        <input
-                            type="checkbox"
-                            name="question_types"
-                            value="fill_blank"
-                            checked
-                        >
-                        Fill in the blanks
-                    </label>
-
-
-                    <label class="type-option">
-                        <input
-                            type="checkbox"
-                            name="question_types"
-                            value="true_false"
-                            checked
-                        >
-                        True / False
-                    </label>
-
-
-                    <label class="type-option">
-                        <input
-                            type="checkbox"
-                            name="question_types"
-                            value="short_answer"
-                            checked
-                        >
-                        Short Answer
-                    </label>
-
-
-                    <label class="type-option">
-                        <input
-                            type="checkbox"
-                            name="question_types"
-                            value="match_pairs"
-                            checked
-                        >
-                        Match the Pairs
-                    </label>
+                    <input
+                        type="text"
+                        name="topic"
+                        placeholder="Example: Python Programming"
+                    >
 
                 </div>
 
-            </div>
+
+                <div class="grid">
+
+                    <div class="section">
+
+                        <div class="section-title">
+                            🎯 Difficulty
+                        </div>
+
+                        <select name="difficulty">
+
+                            <option value="easy">
+                                🟢 Easy
+                            </option>
+
+                            <option
+                                value="medium"
+                                selected
+                            >
+                                🟡 Medium
+                            </option>
+
+                            <option value="hard">
+                                🔴 Hard
+                            </option>
+
+                            <option value="super hard">
+                                💀 Super Hard
+                            </option>
+
+                        </select>
+
+                    </div>
 
 
-            <div class="note">
-                💡 You can upload a PDF, enter a topic, or use both.
-                Maximum {{ max_questions }} questions are supported.
-            </div>
+                    <div class="section">
+
+                        <div class="section-title">
+                            🔢 Number of Questions
+                        </div>
+
+                        <input
+                            type="number"
+                            name="question_count"
+                            min="1"
+                            max="{{ max_questions }}"
+                            value="10"
+                        >
+
+                    </div>
+
+                </div>
 
 
-            <br>
+                <div class="section">
+
+                    <div class="section-title">
+                        📝 Question Types
+                    </div>
+
+                    <div class="question-types">
+
+                        <label class="type-option">
+
+                            <input
+                                type="checkbox"
+                                name="question_types"
+                                value="mcq"
+                                checked
+                            >
+
+                            🔘 MCQ
+
+                        </label>
 
 
-            <button
-                class="generate-btn"
-                type="submit"
-            >
-                🚀 Generate Quiz
-            </button>
+                        <label class="type-option">
 
-        </form>
+                            <input
+                                type="checkbox"
+                                name="question_types"
+                                value="fill_blank"
+                                checked
+                            >
 
-    </div>
+                            ✏️ Fill in the blanks
 
-</div>
+                        </label>
 
 
-<script>
+                        <label class="type-option">
 
-function showFileName(input) {
+                            <input
+                                type="checkbox"
+                                name="question_types"
+                                value="true_false"
+                                checked
+                            >
 
-    const fileName =
-        document.getElementById("fileName");
+                            ✅ True / False
 
-    if (input.files.length > 0) {
+                        </label>
 
-        fileName.textContent =
-            "Selected: " +
-            input.files[0].name;
 
-    } else {
+                        <label class="type-option">
 
-        fileName.textContent =
-            "No file selected";
+                            <input
+                                type="checkbox"
+                                name="question_types"
+                                value="short_answer"
+                                checked
+                            >
 
-    }
-}
+                            💬 Short Answer
 
-</script>
+                        </label>
+
+
+                        <label class="type-option">
+
+                            <input
+                                type="checkbox"
+                                name="question_types"
+                                value="match_pairs"
+                                checked
+                            >
+
+                            🔗 Match the Pairs
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="note">
+
+                    💡 You can upload a PDF,
+                    enter a topic, or use both.
+
+                    <br>
+
+                    Maximum
+                    {{ max_questions }}
+                    questions are supported.
+
+                </div>
+
+
+                <br>
+
+
+                <button
+                    class="generate-btn"
+                    type="submit"
+                >
+                    🚀 Generate My Quiz
+                </button>
+
+
+            </form>
+
+        </div>
+
+    </main>
+
+
+    <footer>
+
+        Made with
+        <span>💜</span>
+        using QuizAI
+
+    </footer>
+
+
+    <script>
+
+        function showFileName(input) {
+
+            const fileName =
+                document.getElementById("fileName");
+
+            if (
+                input.files &&
+                input.files.length > 0
+            ) {
+
+                fileName.textContent =
+                    "📎 Selected: " +
+                    input.files[0].name;
+
+            } else {
+
+                fileName.textContent =
+                    "No file selected";
+            }
+        }
+
+
+        if (
+            window.matchMedia(
+                "(hover: hover)"
+            ).matches
+        ) {
+
+            document.addEventListener(
+                "mousemove",
+                function(event) {
+
+                    const x =
+                        (
+                            event.clientX /
+                            window.innerWidth -
+                            .5
+                        ) * 10;
+
+                    const y =
+                        (
+                            event.clientY /
+                            window.innerHeight -
+                            .5
+                        ) * 10;
+
+                    document
+                        .querySelectorAll(".blob")
+                        .forEach(
+                            function(blob, index) {
+
+                                const amount =
+                                    (index + 1) * .5;
+
+                                blob.style.transform =
+                                    `translate(
+                                        ${x * amount}px,
+                                        ${y * amount}px
+                                    )`;
+                            }
+                        );
+                }
+            );
+        }
+
+    </script>
 
 </body>
 
