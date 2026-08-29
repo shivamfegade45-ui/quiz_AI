@@ -1,11 +1,13 @@
+````python
 from flask import Flask, render_template, request, redirect, url_for, session
 import os
 import json
 import random
 import uuid
+
 from pypdf import PdfReader
 from werkzeug.utils import secure_filename
-from google import genai
+from openai import OpenAI
 
 
 # =========================================================
@@ -14,20 +16,30 @@ from google import genai
 
 app = Flask(__name__)
 
-app.secret_key = "quiz-secret-key-123"
+app.secret_key = os.environ.get(
+    "FLASK_SECRET_KEY",
+    "quiz-secret-key-123"
+)
 
-# Gemini API
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY:
+# =========================================================
+# NVIDIA NEMOTRON API
+# =========================================================
+
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
+
+if not NVIDIA_API_KEY:
     raise RuntimeError(
-        "GEMINI_API_KEY is not set. "
-        "Set it in the terminal before running app.py."
+        "NVIDIA_API_KEY is not set. "
+        "Add NVIDIA_API_KEY in your environment variables."
     )
 
-client = genai.Client(
-    api_key=GEMINI_API_KEY
+client = OpenAI(
+    base_url="https://integrate.api.nvidia.com/v1",
+    api_key=NVIDIA_API_KEY
 )
+
+NEMOTRON_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
 
 # =========================================================
@@ -39,7 +51,6 @@ QUIZ_DATA_FOLDER = "quiz_data"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(QUIZ_DATA_FOLDER, exist_ok=True)
-
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -53,13 +64,11 @@ app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 MAX_QUESTIONS = 100
 
-ALLOWED_EXTENSIONS = {
-    "pdf"
-}
+ALLOWED_EXTENSIONS = {"pdf"}
 
 
 # =========================================================
-# HELPER - CHECK FILE
+# CHECK FILE
 # =========================================================
 
 def allowed_file(filename):
@@ -111,13 +120,17 @@ def extract_pdf_text(pdf_path):
 
 
 # =========================================================
-# CLEAN GEMINI JSON
+# CLEAN AI RESPONSE
 # =========================================================
 
 def clean_json_response(content):
 
+    if not content:
+        return ""
+
     content = content.strip()
 
+    # Remove markdown fences
     if content.startswith("```json"):
 
         content = content[7:]
@@ -132,11 +145,22 @@ def clean_json_response(content):
 
     content = content.strip()
 
-    return content
+    # Sometimes model adds text before/after JSON.
+    # Try to keep only the JSON array.
+
+    start = content.find("[")
+
+    end = content.rfind("]")
+
+    if start != -1 and end != -1 and end > start:
+
+        content = content[start:end + 1]
+
+    return content.strip()
 
 
 # =========================================================
-# NORMALIZE QUESTION DATA
+# NORMALIZE QUESTIONS
 # =========================================================
 
 def normalize_questions(
@@ -148,7 +172,7 @@ def normalize_questions(
     if not isinstance(questions, list):
 
         raise ValueError(
-            "Gemini did not return a question list."
+            "Nemotron did not return a question list."
         )
 
     cleaned = []
@@ -166,13 +190,13 @@ def normalize_questions(
             question.get("answer", "")
         ).strip()
 
-        if not question_text or not answer:
+        if not question_text:
             continue
 
 
-        # =================================================
+        # =====================================================
         # MCQ
-        # =================================================
+        # =====================================================
 
         if question_type == "mcq":
 
@@ -190,42 +214,85 @@ def normalize_questions(
                 if str(option).strip()
             ]
 
+            # Remove duplicate options
+            unique_options = []
+
+            for option in options:
+
+                if option.casefold() not in [
+                    x.casefold()
+                    for x in unique_options
+                ]:
+
+                    unique_options.append(option)
+
+            options = unique_options
+
             if len(options) < 4:
                 continue
 
             options = options[:4]
 
-            if answer not in options:
+            matched_answer = None
 
-                # Try case-insensitive matching
-                matched = None
+            for option in options:
 
-                for option in options:
+                if option.casefold() == answer.casefold():
 
-                    if option.casefold() == answer.casefold():
+                    matched_answer = option
+                    break
 
-                        matched = option
-                        break
-
-                if matched:
-                    answer = matched
-
-                else:
-                    continue
+            if not matched_answer:
+                continue
 
             cleaned.append({
                 "type": "mcq",
                 "question": question_text,
                 "options": options,
-                "answer": answer
+                "answer": matched_answer
             })
 
 
-        # =================================================
+        # =====================================================
+        # TRUE / FALSE
+        # =====================================================
+
+        elif question_type == "true_false":
+
+            answer_lower = answer.casefold()
+
+            if answer_lower not in [
+                "true",
+                "false"
+            ]:
+
+                continue
+
+            correct_answer = (
+                "True"
+                if answer_lower == "true"
+                else "False"
+            )
+
+            cleaned.append({
+                "type": "true_false",
+                "question": question_text,
+                "options": [
+                    "True",
+                    "False"
+                ],
+                "answer": correct_answer
+            })
+
+
+        # =====================================================
         # FILL BLANK
-        # =================================================
+        # =====================================================
 
         elif question_type == "fill_blank":
+
+            if not answer:
+                continue
 
             cleaned.append({
                 "type": "fill_blank",
@@ -234,11 +301,14 @@ def normalize_questions(
             })
 
 
-        # =================================================
+        # =====================================================
         # SHORT ANSWER
-        # =================================================
+        # =====================================================
 
         elif question_type == "short_answer":
+
+            if not answer:
+                continue
 
             cleaned.append({
                 "type": "short_answer",
@@ -247,39 +317,9 @@ def normalize_questions(
             })
 
 
-        # =================================================
-        # TRUE / FALSE
-        # =================================================
-
-        elif question_type == "true_false":
-
-            answer_lower = answer.casefold()
-
-            if answer_lower in [
-                "true",
-                "false"
-            ]:
-
-                answer = (
-                    "True"
-                    if answer_lower == "true"
-                    else "False"
-                )
-
-                cleaned.append({
-                    "type": "true_false",
-                    "question": question_text,
-                    "options": [
-                        "True",
-                        "False"
-                    ],
-                    "answer": answer
-                })
-
-
-        # =================================================
+        # =====================================================
         # MATCH PAIRS
-        # =================================================
+        # =====================================================
 
         elif question_type == "match_pairs":
 
@@ -313,33 +353,37 @@ def normalize_questions(
                         "right": right
                     })
 
-            if len(cleaned_pairs) >= 2:
+            if len(cleaned_pairs) < 2:
+                continue
 
-                random.shuffle(cleaned_pairs)
+            # Shuffle only the displayed right-side choices
+            rights = [
+                pair["right"]
+                for pair in cleaned_pairs
+            ]
 
-                cleaned.append({
-                    "type": "match_pairs",
-                    "question": question_text,
-                    "pairs": cleaned_pairs,
-                    "answer": cleaned_pairs
-                })
+            random.shuffle(rights)
+
+            cleaned.append({
+                "type": "match_pairs",
+                "question": question_text,
+                "pairs": cleaned_pairs,
+                "options": rights
+            })
 
 
     if not cleaned:
 
         raise ValueError(
-            "Gemini did not return usable questions."
+            "Nemotron did not return usable questions. "
+            "Try a smaller question count or another topic/PDF."
         )
 
-
-    # Do not exceed requested count
-    cleaned = cleaned[:question_count]
-
-    return cleaned
+    return cleaned[:question_count]
 
 
 # =========================================================
-# GEMINI QUESTION GENERATOR
+# GENERATE AI QUESTIONS
 # =========================================================
 
 def generate_ai_questions(
@@ -350,9 +394,8 @@ def generate_ai_questions(
     pdf_text=""
 ):
 
-    # Limit PDF text to a reasonable size
-    # This prevents extremely large prompts.
-    MAX_PDF_CHARS = 300000
+    # Keep prompt reasonably sized.
+    MAX_PDF_CHARS = 60000
 
     if pdf_text:
 
@@ -366,7 +409,7 @@ def generate_ai_questions(
 
 
     # =====================================================
-    # SOURCE INSTRUCTION
+    # SOURCE
     # =====================================================
 
     if pdf_content:
@@ -374,12 +417,11 @@ def generate_ai_questions(
         source_instruction = f"""
 The user uploaded a PDF.
 
-You MUST create the questions from the PDF content below.
+IMPORTANT:
+Create questions ONLY from the information contained
+in this PDF.
 
-Do NOT create unrelated General Knowledge questions.
-
-If the PDF is about Biology, create Biology questions
-from the actual PDF content.
+Do not use unrelated general knowledge.
 
 PDF CONTENT:
 ----------------
@@ -392,51 +434,119 @@ PDF CONTENT:
         source_instruction = f"""
 No PDF was uploaded.
 
-Create questions based on the requested topic:
+Create questions about this topic:
 
 {topic}
 """
 
 
     # =====================================================
-    # QUESTION TYPE INSTRUCTIONS
+    # QUESTION TYPE
     # =====================================================
 
     if question_type == "mcq":
 
         type_instruction = """
-Question type: MCQ
+QUESTION TYPE: MCQ
 
-Rules:
-- Exactly 4 options for every question.
-- Exactly one correct answer.
+For every question:
+- Give exactly 4 options.
+- Only one option must be correct.
+- The answer must exactly match one option.
 """
 
-        json_format = """
-[
-  {
-    "question": "Question text",
-    "options": [
-      "Option 1",
-      "Option 2",
-      "Option 3",
-      "Option 4"
-    ],
-    "answer": "Correct option"
-  }
-]
+
+    elif question_type == "true_false":
+
+        type_instruction = """
+QUESTION TYPE: TRUE / FALSE
+
+For every question:
+- Write a factual statement.
+- The answer MUST be exactly True or False.
+- Do not use any other answer.
 """
 
 
     elif question_type == "fill_blank":
 
         type_instruction = """
-Question type: Fill in the blanks
+QUESTION TYPE: FILL IN THE BLANK
 
-Rules:
-- Each question must contain a blank such as ______.
+For every question:
+- Include ______ in the sentence.
 - The answer must be the missing word or phrase.
 """
+
+
+    elif question_type == "short_answer":
+
+        type_instruction = """
+QUESTION TYPE: SHORT ANSWER
+
+For every question:
+- Ask a factual question.
+- Give a concise correct answer.
+"""
+
+
+    elif question_type == "match_pairs":
+
+        type_instruction = """
+QUESTION TYPE: MATCH PAIRS
+
+For every question:
+- Create at least 4 pairs when enough information exists.
+- Each pair must contain a left term and a right definition.
+"""
+
+
+    else:
+
+        raise ValueError(
+            "Invalid question type."
+        )
+
+
+    # =====================================================
+    # JSON FORMAT
+    # =====================================================
+
+    if question_type == "mcq":
+
+        json_format = """
+[
+  {
+    "question": "Question",
+    "options": [
+      "Option A",
+      "Option B",
+      "Option C",
+      "Option D"
+    ],
+    "answer": "Option A"
+  }
+]
+"""
+
+
+    elif question_type == "true_false":
+
+        json_format = """
+[
+  {
+    "question": "A factual statement.",
+    "options": [
+      "True",
+      "False"
+    ],
+    "answer": "True"
+  }
+]
+"""
+
+
+    elif question_type == "fill_blank":
 
         json_format = """
 [
@@ -451,63 +561,23 @@ Rules:
 
     elif question_type == "short_answer":
 
-        type_instruction = """
-Question type: Short Answer
-
-Rules:
-- Ask questions requiring a short factual answer.
-- Keep answers concise.
-"""
-
         json_format = """
 [
   {
     "question": "What is photosynthesis?",
     "options": [],
-    "answer": "The process by which plants make food using light energy."
+    "answer": "It is the process by which plants make food."
   }
 ]
 """
 
 
-    elif question_type == "true_false":
-
-        type_instruction = """
-Question type: True / False
-
-Rules:
-- The question must be a factual statement.
-- The answer MUST be exactly True or False.
-"""
+    else:
 
         json_format = """
 [
   {
-    "question": "Photosynthesis occurs in plants.",
-    "options": [
-      "True",
-      "False"
-    ],
-    "answer": "True"
-  }
-]
-"""
-
-
-    elif question_type == "match_pairs":
-
-        type_instruction = """
-Question type: Match Pairs
-
-Rules:
-- Create matching pairs based on the source material.
-- Create at least 4 pairs when enough information is available.
-"""
-
-        json_format = """
-[
-  {
-    "question": "Match the following:",
+    "question": "Match the following.",
     "pairs": [
       {
         "left": "Term 1",
@@ -526,85 +596,114 @@ Rules:
         "right": "Definition 4"
       }
     ],
-    "answer": "matching pairs"
+    "options": []
   }
 ]
 """
 
 
-    else:
-
-        raise ValueError(
-            "Invalid question type."
-        )
-
-
     # =====================================================
-    # FINAL PROMPT
+    # PROMPT
     # =====================================================
 
     prompt = f"""
 You are an expert educational quiz generator.
 
-Create exactly {question_count} quiz questions.
+Generate exactly {question_count} questions.
 
-Topic:
+TOPIC:
 {topic}
 
-Difficulty:
+DIFFICULTY:
 {difficulty}
 
 {source_instruction}
 
 {type_instruction}
 
-IMPORTANT RULES:
+STRICT RULES:
 
 1. Generate exactly {question_count} questions.
-2. Do not generate General Knowledge questions unless the requested topic itself is General Knowledge.
-3. If a PDF is supplied, use the PDF as the primary source.
-4. Questions must be relevant to the source material.
+2. Follow the requested question type exactly.
+3. If a PDF is supplied, use ONLY information from the PDF.
+4. Do not invent information not supported by the PDF.
 5. Do not repeat questions.
-6. Do not add explanations outside JSON.
-7. Return ONLY valid JSON.
-8. Do not use Markdown code fences.
-9. Keep the language of the questions clear and educational.
+6. Questions must be educational and accurate.
+7. Return ONLY one JSON array.
+8. Do not use Markdown.
+9. Do not add explanations.
+10. Use double quotes for JSON keys and strings.
+11. Do not use trailing commas.
+12. Do not put comments inside JSON.
+13. Do not add text before or after the JSON array.
 
-JSON FORMAT:
+EXPECTED JSON FORMAT:
+
 {json_format}
 """
 
 
     # =====================================================
-    # GEMINI API CALL
+    # NVIDIA API
     # =====================================================
 
-    response = client.models.generate_content(
+    try:
 
-        model="gemini-3.6-flash",
+        response = client.chat.completions.create(
 
-        contents=prompt,
+            model=NEMOTRON_MODEL,
 
-        config={
-            "temperature": 0.7,
-            "response_mime_type": "application/json"
-        }
-    )
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+
+            temperature=0.2,
+
+            max_tokens=12000,
+
+            extra_body={
+                "chat_template_kwargs": {
+                    "enable_thinking": False
+                }
+            }
+        )
+
+    except Exception as e:
+
+        raise RuntimeError(
+            f"NVIDIA API error: {e}"
+        )
 
 
-    content = response.text
+    # =====================================================
+    # RESPONSE
+    # =====================================================
+
+    if not response.choices:
+
+        raise RuntimeError(
+            "NVIDIA returned no response choices."
+        )
+
+    content = response.choices[0].message.content
 
     if not content:
 
         raise RuntimeError(
-            "Gemini returned an empty response."
+            "Nemotron returned an empty response."
         )
-
 
     content = clean_json_response(
         content
     )
 
+
+    # =====================================================
+    # JSON PARSE
+    # =====================================================
 
     try:
 
@@ -615,14 +714,23 @@ JSON FORMAT:
     except json.JSONDecodeError as e:
 
         print(
-            "Gemini JSON ERROR:",
-            content
+            "\n========== NEMOTRON RAW RESPONSE =========="
+        )
+
+        print(content)
+
+        print(
+            "============================================\n"
         )
 
         raise RuntimeError(
-            f"Gemini returned invalid JSON: {e}"
+            f"Nemotron returned invalid JSON: {e}"
         )
 
+
+    # =====================================================
+    # NORMALIZE
+    # =====================================================
 
     return normalize_questions(
         questions,
@@ -757,18 +865,14 @@ def generate():
         question_count = 5
 
 
-    if question_count < 1:
-
-        question_count = 5
-
-
-    if question_count > MAX_QUESTIONS:
-
-        question_count = MAX_QUESTIONS
+    question_count = max(
+        1,
+        min(question_count, MAX_QUESTIONS)
+    )
 
 
     # =====================================================
-    # VALIDATE QUESTION TYPE
+    # VALID QUESTION TYPES
     # =====================================================
 
     valid_types = [
@@ -785,7 +889,7 @@ def generate():
 
 
     # =====================================================
-    # VALIDATE DIFFICULTY
+    # VALID DIFFICULTIES
     # =====================================================
 
     valid_difficulties = [
@@ -800,7 +904,7 @@ def generate():
 
 
     # =====================================================
-    # PDF UPLOAD
+    # PDF
     # =====================================================
 
     pdf_text = ""
@@ -826,19 +930,22 @@ def generate():
             uploaded_file.filename
         )
 
+        # Avoid problems with duplicate filenames
+        filename = (
+            f"{uuid.uuid4().hex}_"
+            f"{filename}"
+        )
 
         pdf_path = os.path.join(
             app.config["UPLOAD_FOLDER"],
             filename
         )
 
-
-        uploaded_file.save(
-            pdf_path
-        )
-
-
         try:
+
+            uploaded_file.save(
+                pdf_path
+            )
 
             pdf_text = extract_pdf_text(
                 pdf_path
@@ -868,52 +975,47 @@ def generate():
 
 
     # =====================================================
-    # GENERATE WITH GEMINI
+    # GENERATE
     # =====================================================
 
     try:
 
         questions = generate_ai_questions(
 
-            topic,
+            topic=topic,
 
-            difficulty,
+            difficulty=difficulty,
 
-            question_type,
+            question_type=question_type,
 
-            question_count,
+            question_count=question_count,
 
-            pdf_text
+            pdf_text=pdf_text
         )
 
 
     except Exception as e:
 
         print(
-            "GEMINI ERROR:",
+            "NVIDIA ERROR:",
             e
         )
 
-        return render_template(
-            "error.html",
-            error=str(e)
-        ) if os.path.exists(
-            os.path.join(
-                "templates",
-                "error.html"
-            )
-        ) else (
-            f"""
-            <h2>Quiz Generation Error</h2>
-            <p>{str(e)}</p>
-            <p>Please check your Gemini API key and try again.</p>
-            """,
+        error_html = f"""
+        <h2>Quiz Generation Error</h2>
+        <p>{str(e)}</p>
+        <br>
+        <a href="/">Go Back</a>
+        """
+
+        return (
+            error_html,
             500
         )
 
 
     # =====================================================
-    # VERIFY QUESTION COUNT
+    # CHECK QUESTIONS
     # =====================================================
 
     if not questions:
@@ -925,7 +1027,7 @@ def generate():
 
 
     # =====================================================
-    # SAVE QUESTIONS SERVER-SIDE
+    # SAVE
     # =====================================================
 
     quiz_id = save_quiz_data(
@@ -933,7 +1035,10 @@ def generate():
     )
 
 
-    # Only small values go into Flask session
+    # =====================================================
+    # SESSION
+    # =====================================================
+
     session["quiz_id"] = quiz_id
     session["topic"] = topic
     session["difficulty"] = difficulty
@@ -972,7 +1077,6 @@ def submit():
         "quiz_id"
     )
 
-
     questions = load_quiz_data(
         quiz_id
     )
@@ -991,7 +1095,7 @@ def submit():
 
 
     # =====================================================
-    # CHECK EACH QUESTION
+    # CHECK QUESTIONS
     # =====================================================
 
     for index, question in enumerate(
@@ -1003,7 +1107,6 @@ def submit():
             "mcq"
         )
 
-
         user_answer = ""
 
         correct_answer = ""
@@ -1012,51 +1115,72 @@ def submit():
 
 
         # =================================================
-        # MCQ / TRUE FALSE / FILL / SHORT
+        # MCQ / TRUE FALSE
         # =================================================
 
         if question_type in [
-
             "mcq",
-
-            "true_false",
-
-            "fill_blank",
-
-            "short_answer"
-
+            "true_false"
         ]:
 
             user_answer = request.form.get(
-
                 f"question_{index}",
-
                 ""
-
             ).strip()
-
 
             correct_answer = str(
-
                 question.get(
-
                     "answer",
-
                     ""
-
                 )
-
             ).strip()
 
-
-            # Case-insensitive comparison
             is_correct = (
-
                 user_answer.casefold()
-
                 == correct_answer.casefold()
-
             )
+
+
+        # =================================================
+        # FILL BLANK / SHORT ANSWER
+        # =================================================
+
+        elif question_type in [
+            "fill_blank",
+            "short_answer"
+        ]:
+
+            user_answer = request.form.get(
+                f"question_{index}",
+                ""
+            ).strip()
+
+            correct_answer = str(
+                question.get(
+                    "answer",
+                    ""
+                )
+            ).strip()
+
+            # Exact answer first
+            is_correct = (
+                user_answer.casefold()
+                == correct_answer.casefold()
+            )
+
+            # For short answers, allow the expected answer
+            # to be contained in the user's answer.
+            if (
+                not is_correct
+                and question_type == "short_answer"
+                and user_answer
+                and correct_answer
+            ):
+
+                is_correct = (
+                    correct_answer.casefold()
+                    in user_answer.casefold()
+                )
 
 
         # =================================================
@@ -1065,89 +1189,56 @@ def submit():
 
         elif question_type == "match_pairs":
 
+            pairs = question.get(
+                "pairs",
+                []
+            )
+
             is_correct = True
 
             user_answers = []
 
-
-            pairs = question.get(
-
-                "pairs",
-
-                []
-
-            )
+            correct_answers = []
 
 
             for pair_index, pair in enumerate(
-
                 pairs
-
             ):
 
                 selected_answer = request.form.get(
-
                     f"question_{index}_pair_{pair_index}",
-
                     ""
-
                 ).strip()
-
-
-                user_answers.append(
-
-                    selected_answer
-
-                )
-
 
                 correct_pair_answer = str(
-
                     pair.get(
-
                         "right",
-
                         ""
-
                     )
-
                 ).strip()
 
+                user_answers.append(
+                    selected_answer
+                )
+
+                correct_answers.append(
+                    correct_pair_answer
+                )
 
                 if (
-
                     selected_answer.casefold()
-
                     != correct_pair_answer.casefold()
-
                 ):
 
                     is_correct = False
 
 
             user_answer = ", ".join(
-
                 user_answers
-
             )
 
-
             correct_answer = ", ".join(
-
-                str(
-
-                    pair.get(
-
-                        "right",
-
-                        ""
-
-                    )
-
-                )
-
-                for pair in pairs
-
+                correct_answers
             )
 
 
@@ -1167,11 +1258,8 @@ def submit():
         results.append({
 
             "question": question.get(
-
                 "question",
-
                 ""
-
             ),
 
             "user_answer": user_answer,
@@ -1196,7 +1284,6 @@ def submit():
         total=len(questions),
 
         results=results
-
     )
 
 
@@ -1206,12 +1293,16 @@ def submit():
 
 if __name__ == "__main__":
 
-    app.run(
-
-        host="127.0.0.1",
-
-        port=5000,
-
-        debug=True
-
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
     )
+
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False
+    )
+````
