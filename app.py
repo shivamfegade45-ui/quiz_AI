@@ -38,9 +38,10 @@ if not NVIDIA_API_KEY:
 
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key=NVIDIA_API_KEY
+    api_key=NVIDIA_API_KEY,
+    timeout=120.0,
+    max_retries=3
 )
-
 NEMOTRON_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
 
