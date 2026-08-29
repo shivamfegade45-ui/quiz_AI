@@ -796,6 +796,22 @@ STRICT OUTPUT RULES:
         raise RuntimeError(
             f"NVIDIA API error: {e}"
         )
+            # =====================================================
+    # READ NVIDIA RESPONSE
+    # =====================================================
+
+    try:
+        content = response.choices[0].message.content
+
+    except Exception:
+        raise RuntimeError(
+            "Could not read the response from Nemotron."
+        )
+
+    if not content:
+        raise RuntimeError(
+            "Nemotron returned an empty response."
+        )
 
 
     # =====================================================
